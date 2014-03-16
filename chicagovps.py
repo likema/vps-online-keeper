@@ -3,6 +3,7 @@
 import logging
 import httplib
 import re
+from threading import Thread
 
 import requests
 from BeautifulSoup import BeautifulSoup
@@ -51,45 +52,25 @@ def login(session, token, username, password):
     return res.text
 
 
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-
-session = requests.Session()
-session.headers.update({
-    'User-Agent': USER_AGENT,
-})
-
-soup = BeautifulSoup(login(session, retrieve_token(session),
-                           USERNAME, PASSWORD))
-for tr in soup.find('table').find('tbody').findAll('tr'):
-    service, _, _, _, status, details = tr.findAll('td')
-    if status.find(text=True).lower() != 'active':
-        continue
-
-    name = service.find('a').find(text=True)
-    form = details.find('form')
-    token = hidden_input_value(form, 'token')
-    id_ = hidden_input_value(form, 'id')
-
+def boot_server(name, token, id_):
     res = session.post(PRODUCT_DETAILS_URL,
                        headers=dict(Referer=PRODUCTS_URL),
                        data=dict(token=token, id=id_))
     res.raise_for_status()
-
-    sub_soup = BeautifulSoup(res.text)
-    solus_status = sub_soup.find('td', attrs=dict(id='solus_status'))
+    soup = BeautifulSoup(res.text)
+    solus_status = soup.find('td', attrs=dict(id='solus_status'))
     solus_status_strong = solus_status.find('strong')
     solus_status_text = solus_status_strong.find(text=True).lower()
     if solus_status_text != 'offline':
         logging.info('%s is %s', name, solus_status_text)
-        continue
+        return
 
     m = SERVER_ID_CHECKER.search(res.text)
     if m:
         server_id = m.group(1)
     else:
         logging.error('Unable to find server_id of %s', name)
-        continue
+        return
 
     res = session.post(SYLOSVM_AJAX_URL,
                        headers={
@@ -106,4 +87,36 @@ for tr in soup.find('table').find('tbody').findAll('tr'):
     else:
         logging.error('Failed to boot %s, %s', name, body)
 
+
+def start_boot_server_thread(server):
+    thread = Thread(target=lambda **x: boot_server(**x), kwargs=server)
+    thread.start()
+    return thread
+
+
+logging.basicConfig()
+logging.getLogger().setLevel(logging.INFO)
+
+session = requests.Session()
+session.headers.update({
+    'User-Agent': USER_AGENT,
+})
+
+servers = []
+
+soup = BeautifulSoup(login(session, retrieve_token(session),
+                           USERNAME, PASSWORD))
+for tr in soup.find('table').find('tbody').findAll('tr'):
+    service, _, _, _, status, details = tr.findAll('td')
+    if status.find(text=True).lower() != 'active':
+        continue
+
+    name = service.find('a').find(text=True)
+    form = details.find('form')
+    token = hidden_input_value(form, 'token')
+    id_ = hidden_input_value(form, 'id')
+
+    servers.append(dict(name=name, token=token, id_=id_))
+
+reduce(lambda x, y: y.join(), map(start_boot_server_thread, servers))
 # vim: ts=4 sw=4 sts=4 et:

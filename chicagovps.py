@@ -3,10 +3,11 @@
 import logging
 import httplib
 import re
-from threading import Thread
 
 import requests
+import gevent
 from BeautifulSoup import BeautifulSoup
+from gevent import monkey
 
 USER_AGENT = 'Mozilla/5.0'
 USERNAME = ''
@@ -52,6 +53,21 @@ def login(session, token, username, password):
     return res.text
 
 
+def servers(session):
+    soup = BeautifulSoup(login(session, retrieve_token(session),
+                               USERNAME, PASSWORD))
+    for tr in soup.find('table').find('tbody').findAll('tr'):
+        service, _, _, _, status, details = tr.findAll('td')
+        if status.find(text=True).lower() != 'active':
+            continue
+
+        name = service.find('a').find(text=True)
+        form = details.find('form')
+        token = hidden_input_value(form, 'token')
+        id_ = hidden_input_value(form, 'id')
+        yield dict(name=name, token=token, id_=id_)
+
+
 def boot_server(name, token, id_):
     res = session.post(PRODUCT_DETAILS_URL,
                        headers=dict(Referer=PRODUCTS_URL),
@@ -88,12 +104,7 @@ def boot_server(name, token, id_):
         logging.error('Failed to boot %s, %s', name, body)
 
 
-def start_boot_server_thread(server):
-    thread = Thread(target=lambda **x: boot_server(**x), kwargs=server)
-    thread.start()
-    return thread
-
-
+monkey.patch_all(thread=False, select=False)
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
@@ -102,21 +113,6 @@ session.headers.update({
     'User-Agent': USER_AGENT,
 })
 
-servers = []
+gevent.joinall([gevent.spawn(boot_server, **i) for i in servers(session)])
 
-soup = BeautifulSoup(login(session, retrieve_token(session),
-                           USERNAME, PASSWORD))
-for tr in soup.find('table').find('tbody').findAll('tr'):
-    service, _, _, _, status, details = tr.findAll('td')
-    if status.find(text=True).lower() != 'active':
-        continue
-
-    name = service.find('a').find(text=True)
-    form = details.find('form')
-    token = hidden_input_value(form, 'token')
-    id_ = hidden_input_value(form, 'id')
-
-    servers.append(dict(name=name, token=token, id_=id_))
-
-reduce(lambda x, y: y.join(), map(start_boot_server_thread, servers))
 # vim: ts=4 sw=4 sts=4 et:

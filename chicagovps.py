@@ -1,15 +1,16 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import logging
-import httplib
 import re
+import functools
 
-import requests
 import gevent
 from BeautifulSoup import BeautifulSoup
 from gevent import monkey
 
-USER_AGENT = 'Mozilla/5.0'
+import utils
+
 USERNAME = ''
 PASSWORD = ''
 
@@ -22,40 +23,15 @@ SYLOSVM_AJAX_URL = 'https://%s/clientarea.php?sylusvm_ajax=1' % HOST
 SERVER_ID_CHECKER = re.compile(r'"vserverid"\s*:\s*"(\d+)"')
 
 
-def enable_requests_debug():
-    httplib.HTTPConnection.debuglevel = 1
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
+def servers(username, password, session):
+    data = dict(username=username, password=password)
+    data.update(utils.retrieve_hidden_tokens(session,
+                                             PRODUCTS_URL,
+                                             form_name='frmlogin',
+                                             names=('token', )))
 
+    soup = BeautifulSoup(utils.login(session, LOGIN_URL, PRODUCTS_URL, **data))
 
-def hidden_input_value(form, name):
-    return form.find('input', attrs=dict(type='hidden', name=name))['value']
-
-
-def retrieve_token(session):
-    res = session.get(PRODUCTS_URL)
-    res.raise_for_status()
-    soup = BeautifulSoup(res.text)
-    form = soup.find('form', attrs=dict(name='frmlogin'))
-    return hidden_input_value(form, 'token')
-
-
-def login(session, token, username, password):
-    res = session.post(LOGIN_URL,
-                       headers=dict(Referer=PRODUCTS_URL),
-                       data=dict(token=token,
-                                 username=username,
-                                 password=password))
-    res.raise_for_status()
-    return res.text
-
-
-def servers(session):
-    soup = BeautifulSoup(login(session, retrieve_token(session),
-                               USERNAME, PASSWORD))
     for tr in soup.find('table').find('tbody').findAll('tr'):
         service, _, _, _, status, details = tr.findAll('td')
         if status.find(text=True).lower() != 'active':
@@ -63,12 +39,12 @@ def servers(session):
 
         name = service.find('a').find(text=True)
         form = details.find('form')
-        token = hidden_input_value(form, 'token')
-        id_ = hidden_input_value(form, 'id')
+        token = utils.hidden_input_value(form, 'token')
+        id_ = utils.hidden_input_value(form, 'id')
         yield dict(name=name, token=token, id_=id_)
 
 
-def boot_server(name, token, id_):
+def boot_server(session, name, token, id_):
     res = session.post(PRODUCT_DETAILS_URL,
                        headers=dict(Referer=PRODUCTS_URL),
                        data=dict(token=token, id=id_))
@@ -108,11 +84,11 @@ monkey.patch_all(thread=False, select=False)
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
-session = requests.Session()
-session.headers.update({
-    'User-Agent': USER_AGENT,
-})
+#utils.enable_requests_debug()
 
-gevent.joinall([gevent.spawn(boot_server, **i) for i in servers(session)])
+session = utils.make_session()
+boot = functools.partial(boot_server, session=session)
+gevent.joinall([gevent.spawn(boot, **i)
+                for i in servers(USERNAME, PASSWORD, session)])
 
 # vim: ts=4 sw=4 sts=4 et:

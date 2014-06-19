@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import httplib
 import logging
-import requests
 
+import requests
 from BeautifulSoup import BeautifulSoup
 
 USER_AGENT = 'Mozilla/5.0'
@@ -56,5 +57,12 @@ def login(session, url, referer, **data):
                        data=data)
     res.raise_for_status()
     return res.text
+
+
+def init_args(description):
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('-u', '--username', required=True)
+    parser.add_argument('-p', '--password', required=True)
+    return parser.parse_args()
 
 # vim: ts=4 sw=4 sts=4 et:

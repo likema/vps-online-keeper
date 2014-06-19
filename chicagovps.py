@@ -84,11 +84,10 @@ monkey.patch_all(thread=False, select=False)
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
-#utils.enable_requests_debug()
-
+args = utils.init_args('Boot ChicagoVPS if they are offline.')
 session = utils.make_session()
 boot = functools.partial(boot_server, session=session)
 gevent.joinall([gevent.spawn(boot, **i)
-                for i in servers(USERNAME, PASSWORD, session)])
+                for i in servers(args.username, args.password, session)])
 
 # vim: ts=4 sw=4 sts=4 et:

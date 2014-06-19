@@ -11,9 +11,6 @@ from gevent import monkey
 
 import utils
 
-USERNAME = ''
-PASSWORD = ''
-
 HOST = 'billing.chicagovps.net'
 PRODUCTS_URL = 'https://%s/clientarea.php?action=products' % HOST
 PRODUCT_DETAILS_URL = 'https://%s/clientarea.php?action=productdetails' % HOST

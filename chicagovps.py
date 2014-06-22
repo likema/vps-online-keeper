@@ -4,6 +4,8 @@
 import logging
 import re
 import functools
+import os.path
+from errno import ENOENT
 
 import gevent
 from BeautifulSoup import BeautifulSoup
@@ -20,16 +22,36 @@ SYLOSVM_AJAX_URL = 'https://%s/clientarea.php?sylusvm_ajax=1' % HOST
 SERVER_ID_CHECKER = re.compile(r'"vserverid"\s*:\s*"(\d+)"')
 
 
-def servers(username, password, session):
-    data = dict(username=username, password=password)
-    data.update(utils.retrieve_hidden_tokens(session,
-                                             PRODUCTS_URL,
-                                             form_name='frmlogin',
-                                             names=('token', )))
+def servers(username, password, session, cookies_dir):
+    cookie_fname = os.path.join(cookies_dir, username)
 
-    soup = BeautifulSoup(utils.login(session, LOGIN_URL, PRODUCTS_URL, **data))
+    try:
+        session.cookies = utils.load_cookies_from_lwp(cookie_fname)
+        logging.info('Cookie is loaded from %s', cookie_fname)
+    except Exception as e:
+        if not isinstance(e, IOError) or e.errno != ENOENT:
+            logging.warning("Failed to load cookies from %s, %s",
+                            cookie_fname, e)
 
-    for tr in soup.find('table').find('tbody').findAll('tr'):
+    res = session.get(PRODUCTS_URL)
+    res.raise_for_status()
+
+    soup = BeautifulSoup(res.text)
+    table = soup.find('table')
+    if table is None:  # Not logged in?
+        data = dict(username=username, password=password)
+        data.update(utils.retrieve_hidden_tokens(soup,
+                                                 form_name='frmlogin',
+                                                 names=('token', )))
+
+        body = utils.login(session, LOGIN_URL, PRODUCTS_URL, **data)
+        soup = BeautifulSoup(body)
+        table = soup.find('table')
+        if table is not None:
+            utils.save_cookies_lwp(session.cookies, cookie_fname)
+            logging.info('Cookie is saved to %s', cookie_fname)
+
+    for tr in table.find('tbody').findAll('tr'):
         service, _, _, _, status, details = tr.findAll('td')
         if status.find(text=True).lower() != 'active':
             continue
@@ -51,7 +73,7 @@ def boot_server(session, name, token, id_):
     solus_status_strong = solus_status.find('strong')
     solus_status_text = solus_status_strong.find(text=True).lower()
     if solus_status_text != 'offline':
-        logging.info('%s is %s', name, solus_status_text)
+        logging.info('%s is %s.', name, solus_status_text)
         return
 
     m = SERVER_ID_CHECKER.search(res.text)
@@ -85,6 +107,7 @@ args = utils.init_args('Boot ChicagoVPS if they are offline.')
 session = utils.make_session()
 boot = functools.partial(boot_server, session=session)
 gevent.joinall([gevent.spawn(boot, **i)
-                for i in servers(args.username, args.password, session)])
+                for i in servers(args.username, args.password, session,
+                                 args.cookies_dir)])
 
 # vim: ts=4 sw=4 sts=4 et:

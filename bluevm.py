@@ -4,6 +4,8 @@
 import urlparse
 import logging
 import functools
+import os.path
+from errno import ENOENT
 
 import utils
 
@@ -15,15 +17,36 @@ HOME_URL = 'https://feathur.bluevm.com/'
 VIEW_URL = 'https://feathur.bluevm.com/view.php'
 LOGIN_URL = 'https://feathur.bluevm.com/index.php?action=login'
 
-def servers(email, password, session):
-    data = dict(email=email, password=password)
-    data.update(utils.retrieve_hidden_tokens(session, HOME_URL,
-                                             form_id='form1', verify=False,
-                                             names=('_CPHP_CSRF_KEY',
-                                                    '_CPHP_CSRF_TOKEN')))
 
-    soup = BeautifulSoup(utils.login(session, LOGIN_URL, HOME_URL, **data))
+def servers(email, password, session, cookies_dir):
+    cookie_fname = os.path.join(cookies_dir, email)
+
+    try:
+        session.cookies = utils.load_cookies_from_lwp(cookie_fname)
+        logging.info('Cookie is loaded from %s', cookie_fname)
+    except Exception as e:
+        if not isinstance(e, IOError) or e.errno != ENOENT:
+            logging.warning("Failed to load cookies from %s, %s",
+                            cookie_fname, e)
+
+    res = session.get(HOME_URL)
+    res.raise_for_status()
+
+    soup = BeautifulSoup(res.text)
     table = soup.find('table')
+    if table is None:  # Not logged in?
+        data = dict(email=email, password=password)
+        data.update(utils.retrieve_hidden_tokens(soup,
+                                                 form_id='form1',
+                                                 names=('_CPHP_CSRF_KEY',
+                                                        '_CPHP_CSRF_TOKEN')))
+
+        soup = BeautifulSoup(utils.login(session, LOGIN_URL, HOME_URL, **data))
+        table = soup.find('table')
+
+        if table is not None:
+            utils.save_cookies_lwp(session.cookies, cookie_fname)
+            logging.info('Cookie is saved to %s', cookie_fname)
 
     for tr in table.find('tbody').findAll('tr'):
         _, name, _, _, ip, service = tr.findAll('td')
@@ -46,7 +69,7 @@ def server_status(session, id_):
 def boot_server(session, name, ip, id_):
     status = server_status(session, id_)
     if status != 'offline':
-        logging.info('%s (%s) is %s', name, ip, status)
+        logging.info('%s (%s) is %s.', name, ip, status)
         return
 
     res = session.get(VIEW_URL, params=dict(id=id_, action='boot'))
@@ -61,6 +84,7 @@ args = utils.init_args('Boot BlueVM VPS if they are offline.')
 session = utils.make_session()
 boot = functools.partial(boot_server, session=session)
 gevent.joinall([gevent.spawn(boot, **i)
-                for i in servers(args.username, args.password, session)])
+                for i in servers(args.username, args.password, session,
+                                 args.cookies_dir)])
 
 # vim: ts=4 sw=4 sts=4 et:

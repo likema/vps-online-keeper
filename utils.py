@@ -3,9 +3,11 @@
 import argparse
 import httplib
 import logging
+import cookielib
+import sys
+import os.path
 
 import requests
-from BeautifulSoup import BeautifulSoup
 
 USER_AGENT = 'Mozilla/5.0'
 
@@ -31,7 +33,7 @@ def hidden_input_value(form, name):
     return form.find('input', attrs=dict(type='hidden', name=name))['value']
 
 
-def retrieve_hidden_tokens(session, url, **kwargs):
+def retrieve_hidden_tokens(soup, **kwargs):
     if 'form_id' in kwargs:
         form_attrs = dict(id=kwargs['form_id'])
     elif 'form_name' in kwargs:
@@ -43,12 +45,26 @@ def retrieve_hidden_tokens(session, url, **kwargs):
     if not names:
         return ()
 
-    res = session.get(url, verify=kwargs.get('verify', True))
-    res.raise_for_status()
-    soup = BeautifulSoup(res.text)
     form = soup.find('form', attrs=form_attrs)
-
     return dict([(i, hidden_input_value(form, i)) for i in names])
+
+
+def save_cookies_lwp(cookiejar, fname):
+    lwp_cookiejar = cookielib.LWPCookieJar()
+
+    for i in cookiejar:
+        args = dict(vars(i).items())
+        args['rest'] = args['_rest']
+        del args['_rest']
+        lwp_cookiejar.set_cookie(cookielib.Cookie(**args))
+
+    lwp_cookiejar.save(fname, ignore_discard=True)
+
+
+def load_cookies_from_lwp(fname):
+    lwp_cookiejar = cookielib.LWPCookieJar()
+    lwp_cookiejar.load(fname, ignore_discard=True)
+    return lwp_cookiejar
 
 
 def login(session, url, referer, **data):
@@ -60,9 +76,11 @@ def login(session, url, referer, **data):
 
 
 def init_args(description):
+    cookies_dir = os.path.join(os.path.dirname(sys.argv[0]), 'cookies')
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-u', '--username', required=True)
     parser.add_argument('-p', '--password', required=True)
+    parser.add_argument('-c', '--cookies-dir', default=cookies_dir)
     return parser.parse_args()
 
 # vim: ts=4 sw=4 sts=4 et:

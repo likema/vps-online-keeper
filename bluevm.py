@@ -5,7 +5,6 @@ import urlparse
 import logging
 import functools
 import os.path
-from errno import ENOENT
 
 import utils
 
@@ -20,14 +19,7 @@ LOGIN_URL = 'https://feathur.bluevm.com/index.php?action=login'
 
 def servers(email, password, session, cookies_dir):
     cookie_fname = os.path.join(cookies_dir, email)
-
-    try:
-        session.cookies = utils.load_cookies_from_lwp(cookie_fname)
-        logging.info('Cookie is loaded from %s', cookie_fname)
-    except Exception as e:
-        if not isinstance(e, IOError) or e.errno != ENOENT:
-            logging.warning("Failed to load cookies from %s, %s",
-                            cookie_fname, e)
+    session.cookies = utils.load_cookies_from_lwp(cookie_fname)
 
     res = session.get(HOME_URL)
     res.raise_for_status()
@@ -46,7 +38,6 @@ def servers(email, password, session, cookies_dir):
 
         if table is not None:
             utils.save_cookies_lwp(session.cookies, cookie_fname)
-            logging.info('Cookie is saved to %s', cookie_fname)
 
     for tr in table.find('tbody').findAll('tr'):
         _, name, _, _, ip, service = tr.findAll('td')

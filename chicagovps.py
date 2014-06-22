@@ -5,7 +5,6 @@ import logging
 import re
 import functools
 import os.path
-from errno import ENOENT
 
 import gevent
 from BeautifulSoup import BeautifulSoup
@@ -24,14 +23,7 @@ SERVER_ID_CHECKER = re.compile(r'"vserverid"\s*:\s*"(\d+)"')
 
 def servers(username, password, session, cookies_dir):
     cookie_fname = os.path.join(cookies_dir, username)
-
-    try:
-        session.cookies = utils.load_cookies_from_lwp(cookie_fname)
-        logging.info('Cookie is loaded from %s', cookie_fname)
-    except Exception as e:
-        if not isinstance(e, IOError) or e.errno != ENOENT:
-            logging.warning("Failed to load cookies from %s, %s",
-                            cookie_fname, e)
+    session.cookies = utils.load_cookies_from_lwp(cookie_fname)
 
     res = session.get(PRODUCTS_URL)
     res.raise_for_status()
@@ -49,7 +41,6 @@ def servers(username, password, session, cookies_dir):
         table = soup.find('table')
         if table is not None:
             utils.save_cookies_lwp(session.cookies, cookie_fname)
-            logging.info('Cookie is saved to %s', cookie_fname)
 
     for tr in table.find('tbody').findAll('tr'):
         service, _, _, _, status, details = tr.findAll('td')

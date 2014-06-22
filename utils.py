@@ -6,6 +6,7 @@ import logging
 import cookielib
 import sys
 import os.path
+from errno import ENOENT
 
 import requests
 
@@ -59,11 +60,19 @@ def save_cookies_lwp(cookiejar, fname):
         lwp_cookiejar.set_cookie(cookielib.Cookie(**args))
 
     lwp_cookiejar.save(fname, ignore_discard=True)
+    logging.info('Cookie is saved to %s', fname)
 
 
 def load_cookies_from_lwp(fname):
     lwp_cookiejar = cookielib.LWPCookieJar()
-    lwp_cookiejar.load(fname, ignore_discard=True)
+
+    try:
+        lwp_cookiejar.load(fname, ignore_discard=True)
+        logging.info('Cookie is loaded from %s', fname)
+    except Exception as e:
+        if not isinstance(e, IOError) or e.errno != ENOENT:
+            logging.warning("Failed to load cookies from %s, %s", fname, e)
+
     return lwp_cookiejar
 
 

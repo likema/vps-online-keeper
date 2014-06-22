@@ -18,6 +18,10 @@ or download the latest version from github:
 	git clone git://github.com/likema/vps-online-keeper.git
 	cd vps-online-keeper
 
+If running source code under Debian/Ubuntu, please install dependencies by
+
+	sudo apt-get install python-beautifulsoup python-requests python-gevent
+	
 ## Usage
 
 boot\_vps command line arguments:

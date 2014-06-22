@@ -3,7 +3,8 @@
 import httplib
 import logging
 import cookielib
-from errno import ENOENT
+import os.path
+from errno import ENOENT, EEXIST
 
 import requests
 
@@ -55,6 +56,12 @@ def save_cookies_lwp(cookiejar, fname):
         args['rest'] = args['_rest']
         del args['_rest']
         lwp_cookiejar.set_cookie(cookielib.Cookie(**args))
+
+    try:
+        os.makedirs(os.path.dirname(fname))
+    except OSError as (errno, _):
+        if errno != EEXIST:
+            raise
 
     lwp_cookiejar.save(fname, ignore_discard=True)
     logging.info('Cookie is saved to %s', fname)

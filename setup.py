@@ -7,7 +7,7 @@ except ImportError:
 
 setup(
     name='vps-online-keeper',
-    version='1.0',
+    version='1.0.1',
     description='Keep various VPS online',
     url='https://github.com/likema/vps-online-keeper',
     download_url=('https://github.com/likema/vps-online-keeper'

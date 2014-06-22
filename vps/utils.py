@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import argparse
 import httplib
 import logging
 import cookielib
-import sys
-import os.path
 from errno import ENOENT
 
 import requests
@@ -83,13 +80,5 @@ def login(session, url, referer, **data):
     res.raise_for_status()
     return res.text
 
-
-def init_args(description):
-    cookies_dir = os.path.join(os.path.dirname(sys.argv[0]), 'cookies')
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-u', '--username', required=True)
-    parser.add_argument('-p', '--password', required=True)
-    parser.add_argument('-c', '--cookies-dir', default=cookies_dir)
-    return parser.parse_args()
 
 # vim: ts=4 sw=4 sts=4 et:

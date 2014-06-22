@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import sys
+import functools
+import logging
+import os.path
+
+import gevent
+from gevent import monkey
+
+import vps
+
+
+def init_args():
+    cookies_dir = os.path.join(os.path.dirname(sys.argv[0]), 'cookies')
+    parser = argparse.ArgumentParser('Boot VPS if they are offline.')
+    parser.add_argument('-t', '--type', choices=('chicagovps', 'bluevm'),
+                        required=True)
+    parser.add_argument('-u', '--username', required=True)
+    parser.add_argument('-p', '--password', required=True)
+    parser.add_argument('-c', '--cookies-dir', default=cookies_dir)
+    return parser.parse_args()
+
+monkey.patch_all(thread=False, select=False)
+logging.basicConfig()
+logging.getLogger().setLevel(logging.INFO)
+
+args = init_args()
+inst = getattr(vps, args.type)
+
+session = vps.make_session()
+boot = functools.partial(inst.boot_server, session=session)
+gevent.joinall([gevent.spawn(boot, **i)
+                for i in inst.servers(args.username, args.password, session,
+                                      args.cookies_dir)])
+
+# vim: ts=4 sw=4 sts=4 et:

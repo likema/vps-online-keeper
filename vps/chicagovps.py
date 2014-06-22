@@ -1,14 +1,10 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import logging
 import re
-import functools
 import os.path
 
-import gevent
 from BeautifulSoup import BeautifulSoup
-from gevent import monkey
 
 import utils
 
@@ -89,16 +85,5 @@ def boot_server(session, name, token, id_):
     else:
         logging.error('Failed to boot %s, %s', name, body)
 
-
-monkey.patch_all(thread=False, select=False)
-logging.basicConfig()
-logging.getLogger().setLevel(logging.INFO)
-
-args = utils.init_args('Boot ChicagoVPS if they are offline.')
-session = utils.make_session()
-boot = functools.partial(boot_server, session=session)
-gevent.joinall([gevent.spawn(boot, **i)
-                for i in servers(args.username, args.password, session,
-                                 args.cookies_dir)])
 
 # vim: ts=4 sw=4 sts=4 et:

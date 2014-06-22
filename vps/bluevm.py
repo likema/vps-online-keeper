@@ -1,16 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import urlparse
 import logging
-import functools
 import os.path
 
-import utils
-
-import gevent
 from BeautifulSoup import BeautifulSoup
-from gevent import monkey
+
+import utils
 
 HOME_URL = 'https://feathur.bluevm.com/'
 VIEW_URL = 'https://feathur.bluevm.com/view.php'
@@ -66,16 +62,5 @@ def boot_server(session, name, ip, id_):
     res = session.get(VIEW_URL, params=dict(id=id_, action='boot'))
     res.raise_for_status()
 
-
-monkey.patch_all(thread=False, select=False)
-logging.basicConfig()
-logging.getLogger().setLevel(logging.INFO)
-
-args = utils.init_args('Boot BlueVM VPS if they are offline.')
-session = utils.make_session()
-boot = functools.partial(boot_server, session=session)
-gevent.joinall([gevent.spawn(boot, **i)
-                for i in servers(args.username, args.password, session,
-                                 args.cookies_dir)])
 
 # vim: ts=4 sw=4 sts=4 et:

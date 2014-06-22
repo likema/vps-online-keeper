@@ -8,7 +8,6 @@ import logging
 import os.path
 
 import gevent
-from gevent import monkey
 
 import vps
 
@@ -23,7 +22,7 @@ def init_args():
     parser.add_argument('-c', '--cookies-dir', default=cookies_dir)
     return parser.parse_args()
 
-monkey.patch_all(thread=False, select=False)
+
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 

@@ -30,3 +30,11 @@ boot\_vps command line arguments:
 e.g.
 
 	./boot_vps -t chicagovps -u <username> -p <password>
+	
+For keeping your VPS online, your can add the above command into cron by 
+	
+	crontab -e
+
+	*/15 * * * * <srcdir>/boot_vps -t chicagovps -u <username> -p <password>
+	
+and it will be run every 15 minutes.

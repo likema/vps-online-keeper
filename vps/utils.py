@@ -37,6 +37,8 @@ def retrieve_hidden_tokens(soup, **kwargs):
         form_attrs = dict(id=kwargs['form_id'])
     elif 'form_name' in kwargs:
         form_attrs = dict(name=kwargs['form_name'])
+    elif 'form_action' in kwargs:
+        form_attrs = dict(action=kwargs['form_action'])
     else:
         return ()
 

@@ -6,6 +6,7 @@ Currently, it supports
 
 * [ChicagoVPS](http://www.chicagovps.net/)
 * [BlueVM](https://www.bluevm.com/)
+* [URPad](http://urpad.net/)
 
 ## Installation
 
@@ -35,7 +36,7 @@ e.g.
 
 	./boot_vps -t chicagovps -u <username> -p <password>
 	
-For keeping your VPS online, your can add the above command into cron by 
+For keeping your VPS online, your can add the above command into cron by
 	
 	crontab -e
 

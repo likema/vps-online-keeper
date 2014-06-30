@@ -21,7 +21,8 @@ def servers(username, password, session, cookies_dir):
     cookie_fname = os.path.join(cookies_dir, username)
     session.cookies = utils.load_cookies_from_lwp(cookie_fname)
 
-    res = session.get(PRODUCTS_URL, verify=False)
+    res = session.get(PRODUCTS_URL, verify=False,
+                      timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
 
     soup = BeautifulSoup(res.text)
@@ -48,8 +49,9 @@ def servers(username, password, session, cookies_dir):
 
 
 def boot_server(session, name, href):
-    url = 'https://%s/%s' % (HOST , href)
-    res = session.get(url, headers=dict(Referer=PRODUCTS_URL))
+    url = 'https://%s/%s' % (HOST, href)
+    res = session.get(url, headers=dict(Referer=PRODUCTS_URL),
+                      timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
     soup = BeautifulSoup(res.text)
     status = soup.find('strong').find(text=True).lower()
@@ -57,7 +59,7 @@ def boot_server(session, name, href):
         logging.info('%s is %s.', name, status)
         return
 
-    session.get(url + '&modop=custom&a=boot')
+    session.get(url + '&modop=custom&a=boot', timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
 
 # vim: ts=4 sw=4 sts=4 et:

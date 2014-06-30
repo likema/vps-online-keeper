@@ -17,7 +17,7 @@ def servers(email, password, session, cookies_dir):
     cookie_fname = os.path.join(cookies_dir, email)
     session.cookies = utils.load_cookies_from_lwp(cookie_fname)
 
-    res = session.get(HOME_URL)
+    res = session.get(HOME_URL, timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
 
     soup = BeautifulSoup(res.text)
@@ -48,7 +48,8 @@ def servers(email, password, session, cookies_dir):
 
 
 def server_status(session, id_):
-    res = session.get(VIEW_URL, params=dict(id=id_, action='statistics'))
+    res = session.get(VIEW_URL, params=dict(id=id_, action='statistics'),
+                      timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
     return res.json()['result']  # online
 
@@ -59,7 +60,8 @@ def boot_server(session, name, ip, id_):
         logging.info('%s (%s) is %s.', name, ip, status)
         return
 
-    res = session.get(VIEW_URL, params=dict(id=id_, action='boot'))
+    res = session.get(VIEW_URL, params=dict(id=id_, action='boot'),
+                      timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
 
 

@@ -9,6 +9,7 @@ from errno import ENOENT, EEXIST
 import requests
 
 USER_AGENT = 'Mozilla/5.0'
+REQUEST_TIMEOUT = 30
 
 
 def enable_requests_debug():
@@ -85,7 +86,8 @@ def load_cookies_from_lwp(fname):
 def login(session, url, referer, **data):
     res = session.post(url,
                        headers={'Referer': referer},
-                       data=data)
+                       data=data,
+                       timeout=REQUEST_TIMEOUT)
     res.raise_for_status()
     return res.text
 

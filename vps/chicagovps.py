@@ -21,7 +21,7 @@ def servers(username, password, session, cookies_dir):
     cookie_fname = os.path.join(cookies_dir, username)
     session.cookies = utils.load_cookies_from_lwp(cookie_fname)
 
-    res = session.get(PRODUCTS_URL)
+    res = session.get(PRODUCTS_URL, timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
 
     soup = BeautifulSoup(res.text)
@@ -53,7 +53,8 @@ def servers(username, password, session, cookies_dir):
 def boot_server(session, name, token, id_):
     res = session.post(PRODUCT_DETAILS_URL,
                        headers=dict(Referer=PRODUCTS_URL),
-                       data=dict(token=token, id=id_))
+                       data=dict(token=token, id=id_),
+                       timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
     soup = BeautifulSoup(res.text)
     solus_status = soup.find('td', attrs=dict(id='solus_status'))
@@ -77,7 +78,8 @@ def boot_server(session, name, token, id_):
                        },
                        data=dict(sylusvm_act='sylusvm_boot',
                                  vserverid=server_id,
-                                 id=id_))
+                                 id=id_),
+                       timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
     body = res.json()
     if body.get('success'):

@@ -27,7 +27,7 @@ def servers(username, password, session, cookies_dir):
     soup = BeautifulSoup(res.text)
     table = soup.find('table')
     if table is None:  # Not logged in?
-        data = dict(username=username, password=password)
+        data = dict(username=username, password=password, rememberme='on')
         data.update(utils.retrieve_hidden_tokens(soup,
                                                  form_name='frmlogin',
                                                  names=('token', )))

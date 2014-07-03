@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import re
 import os.path
 
 from BeautifulSoup import BeautifulSoup
@@ -10,11 +9,7 @@ import utils
 
 HOST = 'billing.urpad.net'
 PRODUCTS_URL = 'https://%s/clientarea.php?action=products' % HOST
-PRODUCT_DETAILS_URL = 'https://%s/clientarea.php?action=productdetails' % HOST
 LOGIN_URL = 'https://%s/dologin.php' % HOST
-SYLOSVM_AJAX_URL = 'https://%s/clientarea.php?sylusvm_ajax=1' % HOST
-
-SERVER_ID_CHECKER = re.compile(r'"vserverid"\s*:\s*"(\d+)"')
 
 
 def servers(username, password, session, cookies_dir):

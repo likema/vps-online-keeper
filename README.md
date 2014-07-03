@@ -7,6 +7,7 @@ Currently, it supports
 * [ChicagoVPS](http://www.chicagovps.net/)
 * [BlueVM](https://www.bluevm.com/)
 * [URPad](http://urpad.net/)
+* [123system](https://123systems.net/)
 
 ## Installation
 

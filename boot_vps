@@ -16,7 +16,8 @@ def init_args():
     cookies_dir = os.path.join(os.path.dirname(sys.argv[0]), 'cookies')
     parser = argparse.ArgumentParser('Boot VPS if they are offline.')
     parser.add_argument('-t', '--type',
-                        choices=('chicagovps', 'bluevm', 'urpad'),
+                        choices=('chicagovps', 'bluevm', 'urpad',
+                                 'x123systems'),
                         required=True)
     parser.add_argument('-u', '--username', required=True)
     parser.add_argument('-p', '--password', required=True)

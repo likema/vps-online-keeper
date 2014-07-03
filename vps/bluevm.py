@@ -63,6 +63,7 @@ def boot_server(session, name, ip, id_):
     res = session.get(VIEW_URL, params=dict(id=id_, action='boot'),
                       timeout=utils.REQUEST_TIMEOUT)
     res.raise_for_status()
+    logging.info('%s is booted', name)
 
 
 # vim: ts=4 sw=4 sts=4 et:
